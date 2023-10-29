@@ -6,7 +6,7 @@ data <- read_excel("EULN1NOR.xlsx", skip=1)
 data
 
 # we are dealing with GDP data, therefore we would like to use their log
-gdp <- ts(data$`RGDP NOR`, frequency = 4, start=c(2001,1))[-(0:1)]
+gdp <- ts(data$`RGDP NOR`[-(0:1)], frequency = 4, start=c(2001,1))
 gdp
 
 # review RGDP by itself
@@ -159,6 +159,25 @@ m5
 # choose m4 based on loglikelihood, AIC
 final_model = m4
 
+
+# ===== FORECTASTING STEP ===== 
+
+# get the data for the last 12 quarters
+xreg_forecast = cbind(lm_data[-(1:70), c(6,10,14,15)])
+forecast = predict(final_model, n.ahead=12, newxreg=xreg_forecast)   
+forecast_ts = ts(forecast$pred, frequency=4, start=c(2023, 3))   
+
+UL = ts(forecast$pred+forecast$se, frequency=4, start=c(2023, 3))
+LL = ts(forecast$pred-forecast$se, frequency=4, start=c(2023, 3))
+
+# plot of forecasts with 1 s.e.
+minx = min(gdp, LL)
+maxx = max(gdp, UL) 
+
+ts.plot(gdp, forecast_ts, ylim=c(minx,maxx))
+abline(v=2023.25, col="purple")
+lines(UL, col="blue", lty="dashed") 
+lines(LL, col="red", lty="dashed")
 
 
 
