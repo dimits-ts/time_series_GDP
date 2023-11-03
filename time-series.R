@@ -236,17 +236,21 @@ stargazer(final_model,
           ci=T, 
           label="tab::gdp_model",
           df=T,
-          out=paste(RESOURCE_PATH, "/gdp_model.tex", sep=""), 
+          out=paste(RESOURCE_PATH, "/gdp_model.tex", sep=""),
           report=('vc*p'),
-          add.lines=list(c("AIC", round(AIC(final_model),1))),
+          add.lines=list(c("AIC", round(AIC(final_model),1))), 
           no.space=TRUE)
 
 
 # ===== FORECTASTING STEP ===== 
 
+pred_model = arima(lm_data$`RGDP NOR`, order=c(0,0,0), 
+                   xreg=cbind(lm_data[,c(10,18)]))
+pred_model
+
 # get the data for the last 12 quarters and assume the same pattern
-xreg_forecast = cbind(lm_data[-(1:70), c(6,10,14,15)])
-forecast = predict(final_model, n.ahead=12, newxreg=xreg_forecast)   
+xreg_forecast = cbind(lm_data[-(1:70), c(10,18)])
+forecast = predict(pred_model, n.ahead=12, newxreg=xreg_forecast)   
 forecast_ts = ts(forecast$pred, frequency=4, start=c(2023, 3))   
 
 UL = ts(forecast$pred+forecast$se, frequency=4, start=c(2023, 3))
@@ -256,7 +260,24 @@ LL = ts(forecast$pred-forecast$se, frequency=4, start=c(2023, 3))
 minx = min(gdp, LL)
 maxx = max(gdp, UL) 
 
-ts.plot(gdp, forecast_ts, ylim=c(minx,maxx))
+
+ts.plot(gdp, forecast_ts, 
+        ylim=c(minx,maxx), 
+        gpars=list(ylab="RGDP % Change", xlab="Year"))
 abline(v=2023.25, col="purple")
 lines(UL, col="blue", lty="dashed") 
 lines(LL, col="red", lty="dashed")
+
+# save plot
+filepath = filepath_png("predictions")
+png(filepath)
+ts.plot(gdp, forecast_ts, 
+        ylim=c(minx,maxx), 
+        gpars=list(ylab="RGDP % Change", xlab="Year"))
+abline(v=2023.25, col="purple")
+lines(UL, col="blue", lty="dashed") 
+lines(LL, col="red", lty="dashed")
+dev.off()
+
+
+

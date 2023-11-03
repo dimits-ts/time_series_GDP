@@ -36,7 +36,7 @@
 		
 
 	\section{Introduction}
-	In this short report we outline the results of our analysis on Norwegian GDP \% changes from 2021 Q2 to 2023 Q3. Our analysis will be split into an ordinary ARIMA model with no other parameters, and a multiple regression model taking into account other factors and indicators. 
+	In this short report we outline the results of our analysis on Norwegian GDP \% changes from 2001 Q2 to 2023 Q3. Our analysis will be split into an ordinary ARIMA model with no other parameters, and a multiple regression model taking into account other factors and indicators. 
 	
 	For the sake of brevity we will refer to the following statistical tests with the following acronyms: Shapiro Wilk (S-W) and Lilliefors Kolmogorov-Smirnov (K-S), normality tests, Ljung-Box Test (L-B).
 	
@@ -45,7 +45,7 @@
 	We will start by exploring the properties of our time series. The GDP  \% Growth can be seen in Figure \ref{fig::gdp}. Note an overall slight positive trend which varies around $0$, and which remains relatively stable, until the 2nd quarter of 2021. The GDP from that period and on-wards, which corresponds to the outbreak of the COVID pandemic and the subsequent lockdowns imposed in the country,  exhibits wild fluctuations.
 	
 	\begin{figure}
-		\includegraphics[width=10cm]{gdp.png}
+		\includegraphics[width=8cm]{gdp.png}
 		\centering
 		\caption{Norwegian real GDP \% change.}
 		\label{fig::gdp}
@@ -74,7 +74,7 @@
 			\hline
 			\textbf{Name} & \textbf{Type} & \textbf{Description} \\
 			\hline
-			LAG\{p\}  & Numeric & Norwegian RDGP \% change for  Lags $p \in 1 \cdots 4$\\
+			LAG\{p\}  & Numeric & Norwegian RDGP \% change for  Lags $p \in \{1 \cdots 4\}$\\
 			OIL WTI  & Numeric & World Oil Index \\
 			Diff WUI  & Numeric & Quarterly difference of World Uncertainty Index \\
 			Diff PI & Numeric & Quarterly difference of Pandemic Index \\
@@ -107,8 +107,13 @@
 	\input{./resources/gdp_model.tex}
 	%
 	
+	The predictions made by our model can be seen in Figure \ref{fig::predict}.
 	
-	
-	
+	\begin{figure}
+		\includegraphics[width=10cm]{predictions.png}
+		\centering
+		\caption{Predictions for Norwegian real GDP \% change. Red and Blue dashed lines show the bottom and upper 95\% confidence intervals respectively. The purple, vertical line denotes the Present.}
+		\label{fig::predict}
+	\end{figure}
 	
 \end{document}
