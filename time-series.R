@@ -90,6 +90,7 @@ summary(model)
 model_res = model$residuals
 acf(model_res, 48, main="ACF of residuals")
 pacf(model_res, 48, main="PACF of residuals")
+
 shapiro.test(model_res)
 lillie.test(model_res)
 qqnorm(model_res)
@@ -100,41 +101,22 @@ qqline(model_res)
 # after we fit our mixed model
 vif(model)
 
+acf(ts(ar1ma1res^2,), 48, main="ACF of squared residuals")
+pacf(ts(ar1ma1res^2), 48, main="PACF of squared residuals")
 
-# ===== MIXED ARIMA MODEL =====
-
-# create mixed ARIMA model
-lm_ma1 = arima(model_res, order=c(0,0,1), include.mean=F)
-lm_ma1
-
-acf(lm_ma1$residuals, 48, main="ACF of residuals")
-pacf(lm_ma1$residuals, 48, main="PACF of residuals")
+Box.test(model_res,lag=24,type="Ljung")
+Box.test(model_res^2,lag=24,type="Ljung")
 
 
-mixed_model = arima(lm_data$`RGDP NOR`, order=c(0,0,1), include.mean=F, 
-               xreg=cbind(lm_data[,-(0:2)]))
-mixed_model
-
-# check if stationarity, normality, heteroscedasticity indicators are normal 
-mixed_model_res = mixed_model$residuals
-acf(ts(mixed_model_res), 48, main="ACF of residuals")
-pacf(ts(mixed_model_res), 48, main="PACF of residuals")
-shapiro.test(mixed_model_res)
-lillie.test(mixed_model_res)
-qqnorm(mixed_model_res)
-qqline(mixed_model_res)
-
-acf(ts(mixed_model_res^2,), 48, main="ACF of squared residuals")
-pacf(ts(mixed_model_res^2), 48, main="PACF of squared residuals")               
-
-# TODO: check whether other tests are applicable
+# ===== MANUAL PARAMETER SELECTION FOR MULTIPLE REGRESSION ===== 
 
 
-# ===== MANUAL PARAMETER SELECTION FOR MULTIPLE REGRESSION MA(1) ===== 
-
+# try including a MA1 term since it proved significant previously
 m0 = arima(lm_data$`RGDP NOR`, order=c(0,0,1), 
            xreg=cbind(lm_data[,-(0:2)]))
 m0
+
+# MA(1) significant
 
 m1 = arima(lm_data$`RGDP NOR`, order=c(0,0,1), 
            xreg=cbind(lm_data[,c(4,5,6,7,8,9,10,11,14,15)]))
@@ -152,17 +134,75 @@ m4 = arima(lm_data$`RGDP NOR`, order=c(0,0,1),
            xreg=cbind(lm_data[,c(6,10,14,15)]))
 m4 
 
+# MA(1) term stops being significant whereas AIC keeps improving
+
 m5 = arima(lm_data$`RGDP NOR`, order=c(0,0,1), 
-           xreg=cbind(lm_data[,c(6,10,14)]))
+           xreg=cbind(lm_data[,c(6,7,9,10,11)]))
 m5
 
-# choose m4 based on loglikelihood, AIC
-final_model = m4
+m6 = arima(lm_data$`RGDP NOR`, order=c(0,0,1), 
+           xreg=cbind(lm_data[,c(7,9,10,11)]))
+m6
 
+m7 = arima(lm_data$`RGDP NOR`, order=c(0,0,1), 
+           xreg=cbind(lm_data[,c(3,7,9,10,11)]))
+m7
+
+# Discard MA(1) term 
+
+m8 = lm(`RGDP NOR` ~ `LAG1 NOR` + `LAG4 NOR` + `RPROD NOR` + `DPPI NOR` + 1, data = lm_data)
+summary(m8)
+AIC(m8)
+
+m9 = lm(`RGDP NOR` ~ `RPROD NOR` + LEADNOR + 1, data = lm_data)
+summary(m9)
+AIC(m9)
+
+
+fullModel = model
+nullModel = lm(`RGDP NOR` ~ 1, data = lm_data) 
+step_model = step(
+  model,
+  direction = 'both', 
+  scope = list(upper = fullModel, 
+               lower = nullModel), 
+  trace = 0, # do not show the step-by-step process of model selection
+  k=1) #choose by AIC as we want the best predictive, not explanatory model 
+
+summary(step_model)
+AIC(step_model)
+
+final_model = m9
+summary(final_model)
+AIC(final_model)
+
+# evaluate hypotheses
+model_res = final_model$residuals
+acf(model_res, 48, main="ACF of residuals")
+pacf(model_res, 48, main="PACF of residuals")
+
+shapiro.test(model_res)
+lillie.test(model_res)
+qqnorm(model_res)
+qqline(model_res)
+
+# check for multicolinearity
+# this will notify us of variables that most likely need to be removed
+# after we fit our mixed model
+vif(model)
+
+acf(ts(ar1ma1res^2,), 48, main="ACF of squared residuals")
+pacf(ts(ar1ma1res^2), 48, main="PACF of squared residuals")
+
+Box.test(model_res,lag=24,type="Ljung")
+Box.test(model_res^2,lag=24,type="Ljung")
+
+# check linearity
+plot(final_model, 1)
 
 # ===== FORECTASTING STEP ===== 
 
-# get the data for the last 12 quarters
+# get the data for the last 12 quarters and assume the same pattern
 xreg_forecast = cbind(lm_data[-(1:70), c(6,10,14,15)])
 forecast = predict(final_model, n.ahead=12, newxreg=xreg_forecast)   
 forecast_ts = ts(forecast$pred, frequency=4, start=c(2023, 3))   
